@@ -58,7 +58,11 @@ async def test_dispatch_emits_state_changed_event(tmp_path):
     store.start_processing()
 
     await store.dispatch(
-        {"type": StonedogRemembers.ACTION_TYPE_SET_STATE, "path": "user.theme", "value": "light"}
+        {
+            "type": StonedogRemembers.ACTION_TYPE_SET_STATE,
+            "path": "user.theme",
+            "value": "light",
+        }
     )
 
     event = await asyncio.wait_for(events.get(), 1.0)
@@ -100,7 +104,11 @@ async def test_dispatch_failed_apply_emits_no_event(tmp_path):
 
     # list index out of range -> set_nested_value returns False
     await store.dispatch(
-        {"type": StonedogRemembers.ACTION_TYPE_SET_STATE, "path": "items.9", "value": "x"}
+        {
+            "type": StonedogRemembers.ACTION_TYPE_SET_STATE,
+            "path": "items.9",
+            "value": "x",
+        }
     )
     await asyncio.sleep(0.05)
 
