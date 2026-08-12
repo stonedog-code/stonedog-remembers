@@ -6,8 +6,8 @@ Store's load-failure fallbacks that the happy-path tests don't reach.
 
 from stonedog_remembers import Store, get_nested_value, set_nested_value
 
-
 # --- get_nested_value --------------------------------------------------------
+
 
 def test_get_list_index():
     data = {"items": [{"name": "a"}, {"name": "b"}]}
@@ -28,6 +28,7 @@ def test_get_missing_dict_key_returns_none():
 
 
 # --- set_nested_value --------------------------------------------------------
+
 
 def test_set_list_index_in_place():
     data = {"items": [1, 2, 3]}
@@ -80,6 +81,7 @@ def test_set_replaces_scalar_at_list_index_during_traversal():
 
 
 # --- Store persistence fallbacks --------------------------------------------
+
 
 def test_store_load_missing_file_starts_empty(tmp_path):
     store = Store(state_file=str(tmp_path / "missing.json"))

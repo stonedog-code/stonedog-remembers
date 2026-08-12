@@ -34,13 +34,14 @@ __all__ = [
 # Shared dot-path engine (used by both the async store and the sync Store)
 # ---------------------------------------------------------------------------
 
+
 def get_nested_value(path: str, data: Dict[str, Any]) -> Any:
     """Return the value at a dot-notation ``path`` (e.g. ``"job.bins"``).
 
     Supports dict keys and numeric list indices. Returns ``None`` when any
     segment of the path is missing or not traversable.
     """
-    parts = path.split('.')
+    parts = path.split(".")
     temp_data: Any = data
     for part in parts:
         if isinstance(temp_data, dict):
@@ -64,7 +65,7 @@ def set_nested_value(path: str, value: Any, data: Dict[str, Any]) -> bool:
     Intermediate dicts are auto-created. Returns ``True`` on success, ``False``
     if a segment cannot be traversed/assigned (e.g. list index out of range).
     """
-    parts = path.split('.')
+    parts = path.split(".")
     temp_data: Any = data
 
     for i, part in enumerate(parts):
@@ -76,14 +77,20 @@ def set_nested_value(path: str, value: Any, data: Dict[str, Any]) -> bool:
                 if 0 <= idx < len(temp_data):
                     temp_data[idx] = value
                 else:
-                    logger.warning(f"Cannot set list index out of range for path: {path}")
+                    logger.warning(
+                        f"Cannot set list index out of range for path: {path}"
+                    )
                     return False
             else:
-                logger.warning(f"Cannot set value on non-container at path segment: {path}")
+                logger.warning(
+                    f"Cannot set value on non-container at path segment: {path}"
+                )
                 return False
         else:
             if isinstance(temp_data, dict):
-                if part not in temp_data or not isinstance(temp_data[part], (dict, list)):
+                if part not in temp_data or not isinstance(
+                    temp_data[part], (dict, list)
+                ):
                     temp_data[part] = {}
                 temp_data = temp_data[part]
             elif isinstance(temp_data, list) and part.isdigit():
@@ -93,10 +100,15 @@ def set_nested_value(path: str, value: Any, data: Dict[str, Any]) -> bool:
                         temp_data[idx] = {}
                     temp_data = temp_data[idx]
                 else:
-                    logger.warning(f"Cannot traverse list index out of range for path: {path}")
+                    logger.warning(
+                        f"Cannot traverse list index out of range for path: {path}"
+                    )
                     return False
             else:
-                logger.warning(f"Invalid path traversal: segment '{part}' is not a container in path '{path}'")
+                logger.warning(
+                    f"Invalid path traversal: segment '{part}' is not a "
+                    f"container in path '{path}'"
+                )
                 return False
     return True
 
@@ -108,8 +120,9 @@ class StonedogRemembers:
     emits events whenever the state changes. External logic (sagas/listeners)
     can subscribe to these events and dispatch new actions.
     """
-    ACTION_TYPE_SET_STATE = 'SET_STATE'
-    EVENT_TYPE_STATE_CHANGED = 'STATE_CHANGED'
+
+    ACTION_TYPE_SET_STATE = "SET_STATE"
+    EVENT_TYPE_STATE_CHANGED = "STATE_CHANGED"
 
     def __init__(self, initial_state_file_path: str):
         self._initial_state_file_path = initial_state_file_path
@@ -122,14 +135,23 @@ class StonedogRemembers:
 
     async def load_initial_state(self):
         try:
-            with open(self._initial_state_file_path, 'r') as f:
+            with open(self._initial_state_file_path, "r") as f:
                 self._state = json.load(f)
-            logger.info(f"Initial state loaded successfully from: {self._initial_state_file_path}")
+            logger.info(
+                "Initial state loaded successfully from: "
+                f"{self._initial_state_file_path}"
+            )
         except FileNotFoundError:
-            logger.warning(f"Initial state file not found: {self._initial_state_file_path}. Starting with an empty state.")
+            logger.warning(
+                f"Initial state file not found: {self._initial_state_file_path}. "
+                "Starting with an empty state."
+            )
             self._state = {}
         except json.JSONDecodeError:
-            logger.error(f"Invalid JSON in initial state file: {self._initial_state_file_path}. Starting with an empty state.")
+            logger.error(
+                "Invalid JSON in initial state file: "
+                f"{self._initial_state_file_path}. Starting with an empty state."
+            )
             self._state = {}
         except Exception as e:
             logger.error(f"Unexpected error loading initial state: {e}", exc_info=True)
@@ -158,38 +180,54 @@ class StonedogRemembers:
                 action = await self._action_queue.get()
                 logger.debug(f"Processing action: {action}")
 
-                action_type = action.get('type')
+                action_type = action.get("type")
 
                 if action_type == self.ACTION_TYPE_SET_STATE:
-                    path = action.get('path')
-                    value = action.get('value')
+                    path = action.get("path")
+                    value = action.get("value")
 
                     if path is None:
                         logger.warning(f"SET_STATE action missing 'path': {action}")
                         self._action_queue.task_done()
                         continue
 
-                    old_value_at_path = self._get_nested_value(path, current_data=self._state)
+                    old_value_at_path = self._get_nested_value(
+                        path, current_data=self._state
+                    )
 
                     temp_state = copy.deepcopy(self._state)
 
-                    applied_successfully = self._set_nested_value(path, value, current_data=temp_state)
+                    applied_successfully = self._set_nested_value(
+                        path, value, current_data=temp_state
+                    )
 
                     if applied_successfully:
                         self._state = temp_state
 
-                        await self._event_queue.put({
-                            'type': self.EVENT_TYPE_STATE_CHANGED,
-                            'path': path,
-                            'old_value': old_value_at_path,
-                            'new_value': self._get_nested_value(path, current_data=self._state),
-                            'action_source': action
-                        })
-                        logger.debug(f"State updated for path '{path}'. Emitted {self.EVENT_TYPE_STATE_CHANGED} event.")
+                        await self._event_queue.put(
+                            {
+                                "type": self.EVENT_TYPE_STATE_CHANGED,
+                                "path": path,
+                                "old_value": old_value_at_path,
+                                "new_value": self._get_nested_value(
+                                    path, current_data=self._state
+                                ),
+                                "action_source": action,
+                            }
+                        )
+                        logger.debug(
+                            f"State updated for path '{path}'. Emitted "
+                            f"{self.EVENT_TYPE_STATE_CHANGED} event."
+                        )
                     else:
-                        logger.warning(f"Failed to apply state change for path '{path}' with value '{value}'.")
+                        logger.warning(
+                            f"Failed to apply state change for path '{path}' "
+                            f"with value '{value}'."
+                        )
                 else:
-                    logger.warning(f"Unknown action type received: {action_type}. Action: {action}")
+                    logger.warning(
+                        f"Unknown action type received: {action_type}. Action: {action}"
+                    )
 
                 self._action_queue.task_done()
 
@@ -197,13 +235,17 @@ class StonedogRemembers:
                 logger.info("Action processor task cancelled.")
                 break
             except Exception as e:
-                logger.error(f"Unhandled exception in action processor: {e}", exc_info=True)
+                logger.error(
+                    f"Unhandled exception in action processor: {e}", exc_info=True
+                )
                 self._action_queue.task_done()
 
     def _get_nested_value(self, path: str, current_data: Dict[str, Any]) -> Any:
         return get_nested_value(path, current_data)
 
-    def _set_nested_value(self, path: str, value: Any, current_data: Dict[str, Any]) -> bool:
+    def _set_nested_value(
+        self, path: str, value: Any, current_data: Dict[str, Any]
+    ) -> bool:
         return set_nested_value(path, value, current_data)
 
     async def dispatch(self, action: Dict[str, Any]):
@@ -236,7 +278,7 @@ class Store:
         store.subscribe(lambda e: print(e["path"], e["new_value"]))
     """
 
-    EVENT_TYPE_STATE_CHANGED = 'STATE_CHANGED'
+    EVENT_TYPE_STATE_CHANGED = "STATE_CHANGED"
 
     def __init__(
         self,
@@ -264,12 +306,14 @@ class Store:
             logger.warning(f"Store.set failed for path '{path}'.")
             return False
         self._state = candidate
-        self._notify({
-            'type': self.EVENT_TYPE_STATE_CHANGED,
-            'path': path,
-            'old_value': old_value,
-            'new_value': get_nested_value(path, self._state),
-        })
+        self._notify(
+            {
+                "type": self.EVENT_TYPE_STATE_CHANGED,
+                "path": path,
+                "old_value": old_value,
+                "new_value": get_nested_value(path, self._state),
+            }
+        )
         return True
 
     def get(self, path: str, default: Any = None) -> Any:
@@ -304,7 +348,7 @@ class Store:
     def load(self, path: str) -> None:
         """Replace the state with JSON loaded from ``path`` (empty on failure)."""
         try:
-            with open(path, 'r') as f:
+            with open(path, "r") as f:
                 self._state = json.load(f)
             logger.info(f"Store loaded state from: {path}")
         except FileNotFoundError:
@@ -318,8 +362,10 @@ class Store:
         """Persist the current state as JSON to ``path`` (or the ``state_file``)."""
         target = path or self._state_file
         if not target:
-            raise ValueError("Store.save requires a path or a state_file set at construction.")
-        with open(target, 'w') as f:
+            raise ValueError(
+                "Store.save requires a path or a state_file set at construction."
+            )
+        with open(target, "w") as f:
             json.dump(self._state, f, indent=2, default=str)
         logger.debug(f"Store saved state to: {target}")
 
