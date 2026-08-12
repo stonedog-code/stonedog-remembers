@@ -1,0 +1,100 @@
+# The merge gate for stonedog-remembers.
+#
+# This replaces `python-ci-pr-merge.yml`, which was two things bolted together:
+# a test job, and a `dev` -> `main` auto-PR-and-merge robot. Only the first was
+# ever a gate.
+#
+# The robot is gone (NEH-273). It encoded a dev->main promotion flow that this
+# repo does not use — `dev` last moved on 2025-06-09 and has since DIVERGED from
+# `main` (6 commits each way), so the automation it drove could not have run
+# without conflicting anyway. It also needed `GH_ACTIONS_PAT`, a token whose
+# only remaining purpose was feeding a robot nobody wanted; dropping the job
+# drops the secret dependency with it.
+#
+# `dev` itself is deliberately left alone here. Deleting a branch is a decision
+# about the repo, not about its CI, and it does not belong in the same change.
+#
+# Shaped after stonedog-logs' `ci.yml` — the closest sibling (Python, Poetry,
+# same `requires-python` range) — so the two read the same way.
+name: CI
+
+on:
+  # Every PR, not only those based on `main`. The old workflow triggered solely
+  # on `push` to `dev`, so a PR opened against `main` from any other branch
+  # reported ZERO checks and could merge with nothing having run. That is how #5
+  # (the roz-remembers -> stonedog-remembers rename) had to be merged, on a
+  # locally-run gate.
+  #
+  # Unscoped on purpose: a PR stacked on another branch is the one most likely
+  # to need the gate, and `branches: [main]` would silently exempt it.
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Never cancel a run on `main`: its result is the record of what the trunk
+  # actually does.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  gate:
+    name: Gate (tests, py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The floor and the ceiling of `requires-python = ">=3.9,<4.0"`. A
+        # single pin matched neither end and so stated nothing about the range
+        # the package claims to support (NEH-281). The interior versions are
+        # left out on purpose: this is a pure-Python, dependency-free library,
+        # so "breaks on 3.11 while 3.9 and 3.13 are green" is not a failure mode
+        # it has.
+        python-version: ["3.9", "3.13"]
+    steps:
+      # No explicit `ref`. The default is right for both triggers: the pushed
+      # commit on a push, and the PR's merge commit — the state that will exist
+      # on `main` afterwards — on a pull_request.
+      - uses: actions/checkout@v4
+
+      # Poetry runs on THIS interpreter, not the one under test. Poetry 2.x
+      # requires Python >= 3.10, so installing it under the 3.9 matrix leg dies
+      # with "Poetry installation failed" before a single test runs — the trap
+      # stonedog-logs hit on its own first hosted run.
+      - name: Set up Python for Poetry
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      # The interpreter under test, installed second so Poetry is already in
+      # place, then handed to Poetry explicitly by absolute path. A PATH-based
+      # approach is what NEH-281 got wrong: the workflow said 3.10 and the suite
+      # ran on the runner's system 3.12 for months.
+      - name: Set up the interpreter under test
+        uses: actions/setup-python@v5
+        id: target-python
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # The evidence, in the run log, that the pin is real. A reasoning argument
+      # about the YAML is exactly what failed to catch NEH-281.
+      - name: Build the project venv on the interpreter under test
+        run: |
+          poetry env use "${{ steps.target-python.outputs.python-path }}"
+          poetry run python -VV
+
+      - name: Install the package and its dev tools
+        run: poetry install --with dev
+
+      # No PYTHONPATH: `pyproject.toml` sets `pythonpath = ["src"]` under
+      # [tool.pytest.ini_options] already. The 90% coverage floor rides along in
+      # `addopts`, so it gates here without being restated — and restating it
+      # would be a second number to keep in step with the first.
+      - name: pytest
+        run: poetry run pytest
