@@ -1,0 +1,26 @@
+# flake8 is a declared dev dependency but had no configuration, so it ran with
+# its 79-column default and reported 8 findings on unmodified code — 6 of them
+# E501 on lines black had deliberately formatted to 88. The two tools actively
+# disagreed, so flake8 could not be part of a gate in that state.
+#
+# Copied verbatim from stonedog-logs rather than re-decided: the two packages
+# are siblings with the same toolchain, and a second opinion about column width
+# would be a difference nobody chose.
+#
+# flake8 cannot read pyproject.toml, hence this file. The settings only mirror
+# what [tool.black] and [tool.isort] there already say.
+[flake8]
+max-line-length = 88
+
+# Both conflict with black's own formatting: E203 fires on the whitespace black
+# puts before a slice colon, W503 on line breaks black places before a binary
+# operator.
+extend-ignore = E203, W503
+
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    build,
+    dist
