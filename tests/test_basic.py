@@ -77,7 +77,8 @@ async def test_basic_state(tmp_path):
     # Stop processing
     await store.stop_processing()
     print(
-        f"\nTest 'test_basic_lifecycle' completed. Final state:\n{json.dumps(store.get_current_state(), indent=2)}"
+        f"\nTest 'test_basic_lifecycle' completed. Final state:\n"
+        f"{json.dumps(store.get_current_state(), indent=2)}"
     )
 
 
@@ -129,7 +130,8 @@ async def test_complex_state(tmp_path):
     # Stop processing
     await store.stop_processing()
     print(
-        f"\nTest 'test_gameworld_lifecycle' completed. Final state:\n{json.dumps(store.get_current_state(), indent=2)}"
+        f"\nTest 'test_gameworld_lifecycle' completed. Final state:\n"
+        f"{json.dumps(store.get_current_state(), indent=2)}"
     )
 
 

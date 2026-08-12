@@ -39,7 +39,7 @@ concurrency:
 
 jobs:
   gate:
-    name: Gate (tests, py${{ matrix.python-version }})
+    name: Gate (lint + tests, py${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -91,6 +91,29 @@ jobs:
 
       - name: Install the package and its dev tools
         run: poetry install --with dev
+
+      # The three tools pyproject.toml has always declared and nothing ever ran
+      # (NEH-599). They gate here rather than only on someone's laptop, which is
+      # the difference between a standard and a suggestion.
+      #
+      # No `--fix` / no reformat-in-place: a lint step that repairs its own
+      # input passes on code nobody has seen, and the fix is never committed, so
+      # the same finding returns on the next checkout.
+      #
+      # Ordered cheapest-first, and black before flake8 deliberately: nearly
+      # every E501 flake8 would report is a line black would have wrapped, so a
+      # black failure is the more useful message to see first.
+      - name: black
+        run: poetry run black --check src tests
+
+      - name: isort
+        run: poetry run isort --check-only src tests
+
+      # `.flake8`, not pyproject.toml — flake8 cannot read the latter. Its
+      # settings only mirror what [tool.black] and [tool.isort] already say;
+      # without it flake8 runs at 79 columns and fights black on every line.
+      - name: flake8
+        run: poetry run flake8 src tests
 
       # No PYTHONPATH: `pyproject.toml` sets `pythonpath = ["src"]` under
       # [tool.pytest.ini_options] already. The 90% coverage floor rides along in

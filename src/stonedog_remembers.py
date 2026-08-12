@@ -106,7 +106,8 @@ def set_nested_value(path: str, value: Any, data: Dict[str, Any]) -> bool:
                     return False
             else:
                 logger.warning(
-                    f"Invalid path traversal: segment '{part}' is not a container in path '{path}'"
+                    f"Invalid path traversal: segment '{part}' is not a "
+                    f"container in path '{path}'"
                 )
                 return False
     return True
@@ -137,16 +138,19 @@ class StonedogRemembers:
             with open(self._initial_state_file_path, "r") as f:
                 self._state = json.load(f)
             logger.info(
-                f"Initial state loaded successfully from: {self._initial_state_file_path}"
+                "Initial state loaded successfully from: "
+                f"{self._initial_state_file_path}"
             )
         except FileNotFoundError:
             logger.warning(
-                f"Initial state file not found: {self._initial_state_file_path}. Starting with an empty state."
+                f"Initial state file not found: {self._initial_state_file_path}. "
+                "Starting with an empty state."
             )
             self._state = {}
         except json.JSONDecodeError:
             logger.error(
-                f"Invalid JSON in initial state file: {self._initial_state_file_path}. Starting with an empty state."
+                "Invalid JSON in initial state file: "
+                f"{self._initial_state_file_path}. Starting with an empty state."
             )
             self._state = {}
         except Exception as e:
@@ -212,11 +216,13 @@ class StonedogRemembers:
                             }
                         )
                         logger.debug(
-                            f"State updated for path '{path}'. Emitted {self.EVENT_TYPE_STATE_CHANGED} event."
+                            f"State updated for path '{path}'. Emitted "
+                            f"{self.EVENT_TYPE_STATE_CHANGED} event."
                         )
                     else:
                         logger.warning(
-                            f"Failed to apply state change for path '{path}' with value '{value}'."
+                            f"Failed to apply state change for path '{path}' "
+                            f"with value '{value}'."
                         )
                 else:
                     logger.warning(
